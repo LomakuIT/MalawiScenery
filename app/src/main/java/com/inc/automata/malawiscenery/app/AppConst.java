@@ -55,7 +55,7 @@ public class AppConst {
 
 
     //default number of days
-    public static final int NUMBER_OF_DAYS = 7;
+    public static final int NUMBER_OF_DAYS = 3;
     //keys for the POST variables being received in PHP script
     public static final String KEY_EMAIL = "email";
     public static final String KEY_DATE_NOW = "datenow";

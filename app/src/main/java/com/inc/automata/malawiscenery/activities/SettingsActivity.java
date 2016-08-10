@@ -40,11 +40,11 @@ import com.inc.automata.malawiscenery.services.WallpaperService;
 import com.inc.automata.malawiscenery.util.PrefManager;
 
 public class SettingsActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, View.OnClickListener {
+    private static final String TAG = SettingsActivity.class.getSimpleName();
     EditText inputGooglerUsername, inputGalleryFolder, inputColumns, inputDays;
     SwitchCompat switchNotifications, switchWallpaper;
     Button btnSave;
     PrefManager pref;
-    private static final String TAG = SettingsActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -202,7 +202,7 @@ public class SettingsActivity extends AppCompatActivity implements CompoundButto
                         pref.setNoOfGridColumns(Integer.valueOf(inputColumns.getText().toString()));
                     }
 
-                    Toast.makeText(this, "Setting saved", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show();
                     onBackPressed();//call backpress
 
                 } catch (Exception ex) {

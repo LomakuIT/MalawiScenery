@@ -17,6 +17,7 @@ package com.inc.automata.malawiscenery.fragments;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -101,6 +102,11 @@ public class SubmitFeedbackFragment extends DialogFragment implements View.OnCli
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.btnSubmit:
+                final ProgressDialog dialog = new ProgressDialog(getActivity());
+                dialog.setMessage("Submitting...");
+                dialog.setTitle(getString(R.string.app_name));
+                dialog.setCancelable(true);
+                dialog.show();
                 StringRequest stringRequest = new StringRequest(Request.Method.POST, FEEDBACK_URL, new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
@@ -110,13 +116,15 @@ public class SubmitFeedbackFragment extends DialogFragment implements View.OnCli
                         }else{
                             Toast.makeText(getActivity().getApplicationContext(),"Fail, try later",Toast.LENGTH_SHORT).show();//show toast
                         }
+                        dialog.dismiss();
                         getDialog().dismiss();//dismiss dialog
                     }
                 }, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         AppController.getInstance().trackException(error);
-                        Log.e(TAG,"volley: "+error.getMessage());
+                        dialog.dismiss();
+                        Log.e(TAG,"volley: "+error.toString());
                     }
                 }){
                     @Override

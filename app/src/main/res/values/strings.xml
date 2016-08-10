@@ -8,7 +8,7 @@
     <string name="action_links">Links</string>
     <string name="action_share">Social Share</string>
     <string name="action_feedback">Submit Feedback</string>
-
+    <string name="action_privacy_policy">Privacy Policy</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_submit">Submit</string>
 

@@ -15,6 +15,7 @@
  */
 package com.inc.automata.malawiscenery.activities;
 
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -45,21 +46,21 @@ import com.inc.automata.malawiscenery.util.PrefManager;
 import java.lang.reflect.Field;
 import java.util.List;
 
+@SuppressWarnings("deprecated")
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, GridFragment.OnFragmentInteractionListener {
 
-    DrawerLayout drawer;//main app drawer
-    NavigationView navigationView;//drawer list
-    List<Category> albumsList;//list of albums plus IDs
     private static final String TAG = MainActivity.class.getSimpleName();//tag for logging
     private static final int MENU_GROUP = 0;//menu group ID
     //array for web links
     final String[] weblinksArray = {"http://www.kayamawa.com",
             "http://www.robinpopesafaris.net/malawi.php", "http://cawsmw.com",
-            "http://www.amluking.com", "http://www.androidhive.info","http://www.mountmulanje.org.mw/"};
-
+            "https://plus.google.com/102238500424024748140/", "http://www.androidhive.info", "http://www.mountmulanje.org.mw/"};
     //array for names for web links
     final String[] placeNamesArray = {"Kaya Mawa", "Robin Pope Safaris",
-            "Central Africa Wilderness Safaris", "Otim Media Group (app icon)", "AndroidHive","Mulanje Mountain Conservation Trust"};
+            "Central Africa Wilderness Safaris", "Otim Media Group (app icon)", "AndroidHive", "Mulanje Mountain Conservation Trust"};
+    DrawerLayout drawer;//main app drawer
+    NavigationView navigationView;//drawer list
+    List<Category> albumsList;//list of albums plus IDs
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +129,49 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_email_us:
                 showEmailUs();//show email intenet
                 break;
+
+            case R.id.action_photo_creds:
+                showAlertPhotoCreds();//show photo credits
+                break;
+
+            case R.id.action_share:
+                showShare();//show share intent
+                break;
+
+            case R.id.action_settings:
+                startActivity(new Intent(MainActivity.this, SettingsActivity.class));//start settings activity
+                break;
+
+            case R.id.action_feeback:
+                SubmitFeedbackFragment feedbackFragment = SubmitFeedbackFragment.newInstance();
+                feedbackFragment.show(getSupportFragmentManager(), TAG);
+                break;
+
+            case R.id.action_privacy_policy:
+                new AlertDialog.Builder(this).setTitle(getString(R.string.app_name))
+                        .setMessage("All pictures are subject to Lomaku Technologies data privacy policy. Read More?")
+                        .setNegativeButton("Dismiss", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int i) {
+                                dialog.dismiss();//dismiss the dialog
+                            }
+                        }).setPositiveButton("Read More", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        try {
+                            //show full privacy policy in browser
+                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(AppConst.URL_PRIVACY_POLICY)));
+                        } catch (android.content.ActivityNotFoundException ex) {
+                            Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, ex.toString());
+                        } catch (Exception ex) {
+                            Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, ex.toString());
+                        }
+                    }
+                }).show();
+                break;
+
             case R.id.action_links:
                 String neutralButton = "Dismiss";
 
@@ -159,20 +203,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 alertLinks.show();// show the alert dialog
 
                 break;
-            case R.id.action_photo_creds:
-                showAlertPhotoCreds();//show photo credits
-                break;
-            case R.id.action_share:
-                showShare();//show share intent
-                break;
-            case R.id.action_settings:
-                startActivity(new Intent(MainActivity.this, SettingsActivity.class));//start settings activity
-                break;
-
-            case R.id.action_feeback:
-                SubmitFeedbackFragment feedbackFragment = SubmitFeedbackFragment.newInstance();
-                feedbackFragment.show(getSupportFragmentManager(), TAG);
-                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -181,7 +211,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onNavigationItemSelected(MenuItem item) {//implement all drawer item selected action here
         Log.d("NavigationItem ID: ", String.valueOf(item.getItemId()));
         Fragment fragment = fragment = GridFragment.newInstance(albumsList.get(item.getItemId()).getId());//get ID of clicked item
-        setBarTitle(albumsList.get(item.getItemId()).getTitle());//set bar title according to album selected
+        try {
+            setBarTitle(albumsList.get(item.getItemId()).getTitle());//set bar title according to album selected
+        }catch (Exception ex){
+            Log.e(TAG,ex.toString());
+            AppController.getInstance().trackException(ex);
+        }
+
         AppController.getInstance().trackEvent("album", "click", albumsList.get(item.getItemId()).getTitle());//track album that was selected
 
         if (fragment != null) {
@@ -221,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         shareIntent.setType("text/plain");
 
         // information to be shared
-        shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
+        shareIntent.putExtra(Intent.EXTRA_TEXT,
                 AppConst.SHARE_INFO);
         // choose sharing method
         startActivity(Intent.createChooser(shareIntent,
@@ -231,20 +267,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void showEmailUs() {
         // start an email intent and feed it with email address and subject
         // only
-        Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
         emailIntent.setType("message/rfc822");
 
-        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL,
+        emailIntent.putExtra(Intent.EXTRA_EMAIL,
                 new String[]{getString(R.string.developer_email)});// developer email,please keep it as an array
 
-        emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, getString(R.string.app_name));
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.app_name));
 
         try {
             // start the email activity
             startActivity(Intent.createChooser(emailIntent, "Email " + getString(R.string.app_name)
                     + "..."));
 
-        } catch (android.content.ActivityNotFoundException e) {
+        } catch (ActivityNotFoundException e) {
 
             Toast.makeText(getApplicationContext(),
                     "No email clients found/configured: " + e.toString(),
@@ -266,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 + "Central Africa Wilderness Safaris: %s\n\n"
                                 + "Isaac Otim (icon rendering): %s\n\n Mulanje Mountain Conservation Trust: %s\n\n [Visit Links For Direct Page]",
                         "james@kayamawa.com", "info@robinpopesafaris.net",
-                        "info@cawsmw.com", "izakotim@gmail.com","mmct@sdnp.org.mw");
+                        "info@cawsmw.com", "izakotim@gmail.com", "mmct@sdnp.org.mw");
         String neutralAlertTitle = "Dismiss";
 
         AlertDialog.Builder alertPhotoCreds = new AlertDialog.Builder(this);

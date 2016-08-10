@@ -41,6 +41,7 @@ import com.inc.automata.malawiscenery.R;
 import com.inc.automata.malawiscenery.activities.SplashActivity;
 import com.inc.automata.malawiscenery.app.AppController;
 import com.inc.automata.malawiscenery.fragments.GridFragment;
+import com.inc.automata.malawiscenery.util.ConnectionDetector;
 import com.inc.automata.malawiscenery.util.Utils;
 
 import org.json.JSONArray;
@@ -52,13 +53,14 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Random;
 
+@SuppressWarnings("deprecated")
 public class WallpaperService extends GcmTaskService {
 
-    private static final String URL_BEST_OF = "https://picasaweb.google.com/data/feed/api/user/107165993798824467749/albumid/6297833507758039057?alt=json&imgmax=1600";//has best of pictures
     public static final int NUM_SECONDS = 86400; //number of seconds in a day +"&imgmax=d"
     public static final int FLEX = 10800;//flex for when to set the wallpaper. 3 hours
-    private static final String TAG = WallpaperService.class.getSimpleName();//name of class
     public static final int UNIQUE_ID = 1738;
+    private static final String URL_BEST_OF = "https://picasaweb.google.com/data/feed/api/user/107165993798824467749/albumid/6297833507758039057?alt=json&imgmax=1600";//has best of pictures
+    private static final String TAG = WallpaperService.class.getSimpleName();//name of class
 
     public WallpaperService() {
     }
@@ -67,6 +69,10 @@ public class WallpaperService extends GcmTaskService {
     public int onRunTask(TaskParams taskParams) {
         Log.d(TAG, "I am running");
 
+        if(!new ConnectionDetector(getApplicationContext()).hasInternet()){//if it has no internet
+            Log.d(TAG,"no internet detected");
+            return ConnectionResult.NETWORK_ERROR;
+        }
         JsonObjectRequest jsonObjReq = new JsonObjectRequest(Request.Method.GET, URL_BEST_OF, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {

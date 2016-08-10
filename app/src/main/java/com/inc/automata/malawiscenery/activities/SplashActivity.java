@@ -24,6 +24,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -48,6 +50,7 @@ import com.inc.automata.malawiscenery.app.AppConst;
 import com.inc.automata.malawiscenery.app.AppController;
 import com.inc.automata.malawiscenery.model.Category;
 import com.inc.automata.malawiscenery.services.WallpaperService;
+import com.inc.automata.malawiscenery.util.ConnectionDetector;
 import com.inc.automata.malawiscenery.util.GPSTracker;
 import com.inc.automata.malawiscenery.util.PrefManager;
 
@@ -73,6 +76,7 @@ public class SplashActivity extends AppCompatActivity {
 
     //GPS tracker
     GPSTracker gps;
+    Snackbar snackbar;
 
     public static Bitmap decodeSampledBitmapFromResource(Resources res,
                                                          int resId, int reqWidth, int reqHeight) {
@@ -128,7 +132,6 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
-
     // get google email
     private static Account getAccount(AccountManager accountManager) {
         Account[] accounts = accountManager.getAccountsByType("com.google");
@@ -144,114 +147,134 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //if version is greater than Jelly Bean then hide status bar
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);//set fullscreen activity by removing status bar colour
-        }
-
-        setContentView(R.layout.activity_splash);
-
         try {
+            //if version is greater than Jelly Bean then hide status bar
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);//set fullscreen activity by removing status bar colour
+            }
+
+            setContentView(R.layout.activity_splash);
             getSupportActionBar().hide();//hide action bar
+            //setting splash image
+            ImageView imgSplash = (ImageView) findViewById(R.id.imgSplash);
+
+            imgSplash.setImageBitmap(decodeSampledBitmapFromResource(getApplicationContext().getResources(), R.drawable.splash_screen2, IMG_WIDTH, IMG_HEIGHT));
+            imgSplash.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+            //start tracing location
+            gps = new GPSTracker(this);
+            //make data request
+            makeRequest();
         } catch (NullPointerException npEx) {
             Log.e(TAG, npEx.getMessage());
             AppController.getInstance().trackException(npEx);
         }
-        //setting splash image
-        ImageView imgSplash = (ImageView) findViewById(R.id.imgSplash);
+    }
 
-        imgSplash.setImageBitmap(decodeSampledBitmapFromResource(getApplicationContext().getResources(), R.drawable.splash_screen2, IMG_WIDTH, IMG_HEIGHT));
-        imgSplash.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    private void makeRequest(){
 
-        //start tracing location
-        gps = new GPSTracker(this);
+        if(snackbar!=null){//dismiss snackbar
+            snackbar.dismiss();
+        }
 
-        //Picasa request to get list of albums
-        String url = AppConst.URL_PICASA_ALBUMS.replace("_PICASA_USER_", AppController.getInstance().getPrefManager().getGoogleUserName());//replace the picasa user string with an actual username
+        if(new ConnectionDetector(getApplicationContext()).hasInternet()) {//if internet is detected
+            //Picasa request to get list of albums
+            String url = AppConst.URL_PICASA_ALBUMS.replace("_PICASA_USER_", AppController.getInstance().getPrefManager().getGoogleUserName());//replace the picasa user string with an actual username
 
-        Log.d(TAG, "Albums request url: " + url);//log request, remove for production
+            Log.d(TAG, "Albums request url: " + url);//log request, remove for production
 
-        //JSON object request via Volley
-        JsonObjectRequest jsonObjectReq = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                Log.d(TAG, "Albums Response: " + response.toString()); //remove for production
-                List<Category> albums = new ArrayList<>(); //create a list of albums
-                try {
-                    //parsing through the json response
-                    JSONArray entry = response.getJSONObject(TAG_FEED).getJSONArray(TAG_ENTRY);
+            //JSON object request via Volley
+            JsonObjectRequest jsonObjectReq = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    Log.d(TAG, "Albums Response: " + response.toString()); //remove for production
+                    List<Category> albums = new ArrayList<>(); //create a list of albums
+                    try {
+                        //parsing through the json response
+                        JSONArray entry = response.getJSONObject(TAG_FEED).getJSONArray(TAG_ENTRY);
 
-                    //loop through album nodes and add the to album list
-                    for (int i = 0; i < entry.length(); i++) {
-                        JSONObject albumObj = (JSONObject) entry.get(i);
-                        //get album id
-                        String albumId = albumObj.getJSONObject(TAG_GPHOTO_ID).getString(TAG_T);
+                        //loop through album nodes and add the to album list
+                        for (int i = 0; i < entry.length(); i++) {
+                            JSONObject albumObj = (JSONObject) entry.get(i);
+                            //get album id
+                            String albumId = albumObj.getJSONObject(TAG_GPHOTO_ID).getString(TAG_T);
 
-                        //get album title
-                        String albumTitle = albumObj.getJSONObject(TAG_ALBUM_TITLE).getString(TAG_T);
+                            //get album title
+                            String albumTitle = albumObj.getJSONObject(TAG_ALBUM_TITLE).getString(TAG_T);
 
-                        //number of photos in album
-                        String albumNoOfPhotos = albumObj.getJSONObject(TAG_NO_PHOTOS).getString(TAG_T);
+                            //number of photos in album
+                            String albumNoOfPhotos = albumObj.getJSONObject(TAG_NO_PHOTOS).getString(TAG_T);
 
-                        Category album = new Category();
-                        album.setId(albumId);
-                        album.setTitle(albumTitle);
-                        album.setPhotoNo(albumNoOfPhotos);
+                            Category album = new Category();
+                            album.setId(albumId);
+                            album.setTitle(albumTitle);
+                            album.setPhotoNo(albumNoOfPhotos);
 
-                        //add album to list
-                        albums.add(album);
+                            //add album to list
+                            albums.add(album);
 
-                        Log.d(TAG, "Album Id: " + albumId + ", Album Title: " + albumTitle + ", Number: " + albumNoOfPhotos);
-                    }//end for
+                            Log.d(TAG, "Album Id: " + albumId + ", Album Title: " + albumTitle + ", Number: " + albumNoOfPhotos);
+                        }//end for
 
-                    //store albums in shared pref through appController
-                    AppController.getInstance().getPrefManager().storeCategories(albums);
+                        //store albums in shared pref through appController
+                        AppController.getInstance().getPrefManager().storeCategories(albums);
 
-                    //start the main activity and call the finish method
-                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                        //start the main activity and call the finish method
+                        startActivity(new Intent(getApplicationContext(), MainActivity.class));
 
-                    //close the splash activity
-                    finish();
+                        //close the splash activity
+                        finish();
 
-                } catch (JSONException jEx) {
-                    //add to google analytic
-                    AppController.getInstance().trackException(jEx);
-                    //show toast message
-                    Toast.makeText(getApplicationContext(), getString(R.string.msg_unknown_error), Toast.LENGTH_LONG).show();
+                    } catch (JSONException jEx) {
+                        //add to google analytic
+                        AppController.getInstance().trackException(jEx);
+                        //show toast message
+                        Toast.makeText(getApplicationContext(), getString(R.string.msg_unknown_error), Toast.LENGTH_LONG).show();
+                    }
+
                 }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.e(TAG, "Volley Error: " + error.getMessage());
+                    AppController.getInstance().trackException(error);//add google analytic
+                    Toast.makeText(getApplicationContext(), getString(R.string.splash_error), Toast.LENGTH_LONG).show();//show toast
 
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "Volley Error: " + error.getMessage());
-                AppController.getInstance().trackException(error);//add google analytic
-                Toast.makeText(getApplicationContext(), getString(R.string.splash_error), Toast.LENGTH_LONG).show();//show toast
+                    //unable to fetch albums
+                    //check for existing Albums data in shared preferences
+                    if (AppController.getInstance().getPrefManager().getCategories() != null && AppController.getInstance().getPrefManager().getCategories().size() > 0) {
+                        //start the main activity
+                        startActivity(new Intent(getApplicationContext(), MainActivity.class));
 
-                //unable to fetch albums
-                //check for existing Albums data in shared preferences
-                if (AppController.getInstance().getPrefManager().getCategories() != null && AppController.getInstance().getPrefManager().getCategories().size() > 0) {
-                    //start the main activity
-                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                        //close splash activity
+                        finish();
+                    } else {
+                        // Albums data not present in the shared preferences
+                        // Launch settings activity, so that user can modify
+                        // the settings
 
-                    //close splash activity
-                    finish();
-                } else {
-                    // Albums data not present in the shared preferences
-                    // Launch settings activity, so that user can modify
-                    // the settings
-
-                    startActivity(new Intent(SplashActivity.this, SettingsActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                            | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+                        startActivity(new Intent(SplashActivity.this, SettingsActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+                    }
                 }
-            }
-        });
-        // disable the cache for this request, so that it always fetches updated json
-        jsonObjectReq.setShouldCache(false);
+            });
+            // disable the cache for this request, so that it always fetches updated json
+            jsonObjectReq.setShouldCache(false);
 
-        // Making the request
-        AppController.getInstance().addToRequestQueue(jsonObjectReq);
+            // Making the request
+            AppController.getInstance().addToRequestQueue(jsonObjectReq);
+        }else{
+            CoordinatorLayout coordinatorLayout = (CoordinatorLayout)findViewById(R.id.coordinatorLayout);
+            snackbar = Snackbar.make(coordinatorLayout,"No internet connection detected",Snackbar.LENGTH_INDEFINITE)
+                    .setAction("RETRY", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            makeRequest();//recall method
+                        }
+                    });
+            snackbar.show();
+        }
     }
 
     @Override
