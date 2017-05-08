@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Lomaku Technologies Limited.
+ * Copyright 2017 Lomaku Technologies.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,6 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -148,28 +147,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
 
             case R.id.action_privacy_policy:
-                new AlertDialog.Builder(this).setTitle(getString(R.string.app_name))
-                        .setMessage("All pictures are subject to Lomaku Technologies data privacy policy. Read More?")
-                        .setNegativeButton("Dismiss", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int i) {
-                                dialog.dismiss();//dismiss the dialog
-                            }
-                        }).setPositiveButton("Read More", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        try {
-                            //show full privacy policy in browser
-                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(AppConst.URL_PRIVACY_POLICY)));
-                        } catch (android.content.ActivityNotFoundException ex) {
-                            Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
-                            Log.e(TAG, ex.toString());
-                        } catch (Exception ex) {
-                            Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
-                            Log.e(TAG, ex.toString());
-                        }
-                    }
-                }).show();
+                showPolicyDialog();
                 break;
 
             case R.id.action_links:
@@ -205,6 +183,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showPolicyDialog() {
+        new AlertDialog.Builder(this).setTitle(getString(R.string.app_name))
+                .setMessage("All pictures are subject to Lomaku Technologies data privacy policy. Read More?")
+                .setNegativeButton("Dismiss", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        dialog.dismiss();//dismiss the dialog
+                    }
+                }).setPositiveButton("Read More", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                try {
+                    //show full privacy policy in browser
+                    startActivity(new Intent(MainActivity.this,PolicyActivity.class));
+                } catch (ActivityNotFoundException aNFex) {
+                    Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "showPolicyDialog() aNFex: "+aNFex.toString());
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "No browser found", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "showPolicyDialog() ex: "+ex.toString());
+                }
+            }
+        }).show();
     }
 
     @Override
